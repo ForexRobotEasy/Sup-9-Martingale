@@ -1,0 +1,132 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                            Sup 9 Martingale EA   |
+//|                                                 forexroboteasy.com|
+//|                                        Developed by Forex Robot Easy Team|
+//+------------------------------------------------------------------+
+
+#include <Trade\Trade.mqh>
+
+//+------------------------------------------------------------------+
+//| Global variables                                                 |
+//+------------------------------------------------------------------+
+int magicNumber = 123456;  // Magic number for identifying trades
+double lotSize = 0.01;     // Initial lot size
+double increment = 2.0;    // Martingale increment factor
+double stopLoss = 50.0;    // Stop loss level in pips
+double takeProfit = 100.0; // Take profit level in pips
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   // Set trade parameters
+   Trade.SetExpertMagicNumber(magicNumber);
+   Trade.SetExpertLotSize(lotSize);
+   Trade.SetExpertStopLoss(stopLoss);
+   Trade.SetExpertTakeProfit(takeProfit);
+   
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Clean up any open trades
+   Trade.CloseAllTrades();
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Check for open trades
+   if (Trade.GetTotalOpenTrades() == 0)
+   {
+      // Execute trade based on predefined rules and conditions
+      if (IsTradeSignalValid())
+      {
+         OpenTrade();
+      }
+   }
+   
+   // Check for trade closure based on stop loss or take profit
+   if (Trade.GetTotalOpenTrades() > 0)
+   {
+      for (int i = 0; i < Trade.GetTotalOpenTrades(); i++)
+      {
+         if (Trade.GetTradeType(i) == TRADE_TYPE_BUY)
+         {
+            double tradeProfit = Trade.GetTradeProfit(i);
+
+            if (tradeProfit >= takeProfit || tradeProfit <= -stopLoss)
+            {
+               Trade.CloseTrade(i);
+            }
+         }
+         else if (Trade.GetTradeType(i) == TRADE_TYPE_SELL)
+         {
+            double tradeProfit = Trade.GetTradeProfit(i);
+
+            if (tradeProfit >= takeProfit || tradeProfit <= -stopLoss)
+            {
+               Trade.CloseTrade(i);
+            }
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Function to check for trade signal validity                      |
+//+------------------------------------------------------------------+
+bool IsTradeSignalValid()
+{
+   // Add logic for analyzing forex trading data and making informed trading decisions
+   // ...
+   return true; // Placeholder for trade signal validity
+}
+
+//+------------------------------------------------------------------+
+//| Function to open a trade                                          |
+//+------------------------------------------------------------------+
+void OpenTrade()
+{
+   double currentLotSize = lotSize;
+   double currentStopLoss = stopLoss;
+   double currentTakeProfit = takeProfit;
+   int ticket;
+
+   do
+   {
+      ticket = Trade.OpenOrder(TRADE_TYPE_BUY, Symbol(), currentLotSize, Ask, currentStopLoss, currentTakeProfit, 'Sup 9 Martingale', magicNumber);
+      if (ticket > 0)
+      {
+         Print('Buy trade opened with ticket ', ticket);
+      }
+      else
+      {
+         Print('Failed to open buy trade');
+         return;
+      }
+
+      currentLotSize *= increment;
+      currentStopLoss *= increment;
+      currentTakeProfit *= increment;
+
+   } while (ticket == -1); // Retry if trade failed to open
+
+}
+
+//+------------------------------------------------------------------+
+//| Expert start function                                             |
+//+------------------------------------------------------------------+
+void OnStart()
+{
+   // Run the expert advisor
+   OnTick();
+}
